@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createContentIndex, filterConcepts, searchConcepts } from '../web/src/content.js'
+import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from '../web/src/content.js'
 import { renderMarkdown } from '../web/src/markdown.js'
 
 const sampleConcepts = [
@@ -35,6 +35,14 @@ test('filters by type without changing the source concepts', () => {
   assert.ok(filterConcepts(index, 'example').every((item) => item.type === 'example'))
   assert.equal(filterConcepts(index, 'all').length, 2)
   assert.equal(sampleConcepts.length, 2)
+})
+
+test('prefers the most specific nested index path when resolving links', () => {
+  const concepts = [
+    { id: 'index', path: 'index.md' },
+    { id: 'practices', path: 'practices/index.md' },
+  ]
+  assert.equal(resolveConceptLink('practices/index.md', concepts), 'practices')
 })
 
 test('renders safe Markdown and rewrites internal links', () => {

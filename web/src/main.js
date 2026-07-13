@@ -1,7 +1,6 @@
-import { createContentIndex, filterConcepts, searchConcepts } from './content.js'
+import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from './content.js'
 import { renderMarkdown } from './markdown.js'
 import { buildGraphModel, renderGraph } from './graph.js'
-import './styles.css'
 
 const state = {
   index: null,
@@ -66,8 +65,7 @@ function currentConcepts() {
 }
 
 function conceptLinkTarget(href) {
-  const cleanHref = href.split('#')[0].split('?')[0]
-  return state.index.concepts.find((concept) => cleanHref.endsWith(concept.path))?.id ?? null
+  return resolveConceptLink(href, state.index.concepts)
 }
 
 function renderTypeSelect() {
@@ -90,6 +88,11 @@ function renderTypeSummary() {
     document.querySelector('#type-select').value = state.type
     render()
   }))
+}
+
+function renderGraphLegend() {
+  const types = [...new Set(state.index.concepts.map((concept) => concept.type))].sort()
+  document.querySelector('#graph-legend').innerHTML = types.map((type) => `<span><i class="type-${escapeAttribute(type)}"></i>${escapeAttribute(type)}</span>`).join('')
 }
 
 function renderConceptList(concepts) {
@@ -154,10 +157,12 @@ async function load() {
     if (!response.ok) throw new Error(`无法读取 content.json（${response.status}）`)
     const payload = await response.json()
     state.index = createContentIndex(payload.concepts)
+    document.querySelector('.hero-stamp span').textContent = state.index.concepts.length
     const hashId = decodeURIComponent(location.hash.match(/^#concept\/(.+)$/)?.[1] ?? '')
     if (state.index.byId.has(hashId)) state.selectedId = hashId
     renderTypeSelect()
     renderTypeSummary()
+    renderGraphLegend()
     document.querySelector('#search-input').addEventListener('input', (event) => {
       state.query = event.target.value
       render()

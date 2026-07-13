@@ -26,3 +26,10 @@ export function filterConcepts(index, type) {
   if (!type || type === 'all') return [...index.concepts]
   return index.concepts.filter((concept) => concept.type === type)
 }
+
+export function resolveConceptLink(href, concepts) {
+  const cleanHref = href.split('#')[0].split('?')[0]
+  return concepts
+    .filter((concept) => cleanHref.endsWith(concept.path))
+    .sort((left, right) => right.path.length - left.path.length)[0]?.id ?? null
+}
