@@ -81,6 +81,11 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .concept-row-copy small { color: var(--muted); font: 9px "SFMono-Regular", monospace; }
 .concept-row-arrow { margin-left: auto; color: var(--muted); }
 .panel-heading h2 { margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -.04em; }
+.panel-toggle { padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted-strong); font: 10px "SFMono-Regular", monospace; letter-spacing: .06em; }
+.panel-toggle:hover { border-color: var(--mint); color: var(--ink); background: var(--surface-soft); }
+.panel-toggle:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+.graph-content[hidden] { display: none; }
+.graph-content { padding-top: 8px; }
 .graph-legend { display: flex; flex-wrap: wrap; justify-content: end; gap: 9px; color: var(--muted); font: 10px "SFMono-Regular", monospace; }
 .graph-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .graph-legend i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); }

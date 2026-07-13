@@ -1,4 +1,5 @@
 import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from './content.js'
+import { createDisclosureState, toggleDisclosure } from './disclosure.js'
 import { renderMarkdown } from './markdown.js'
 import { buildGraphModel, renderGraph } from './graph.js'
 
@@ -7,6 +8,7 @@ const state = {
   selectedId: null,
   query: '',
   type: 'all',
+  mapDisclosure: createDisclosureState(),
 }
 
 const app = document.querySelector('#app')
@@ -44,9 +46,12 @@ function shellMarkup() {
           <nav id="concept-list" class="concept-list"></nav>
         </aside>
         <section class="graph-panel" aria-labelledby="map-title">
-          <div class="panel-heading"><div><p class="eyebrow">RELATIONSHIP SURFACE</p><h2 id="map-title">知识地图</h2></div><div id="graph-legend" class="graph-legend"></div></div>
-          <div id="graph-mount" class="graph-mount"><p class="empty-state">加载关系图…</p></div>
-          <p class="graph-hint">点击节点聚焦关系 · 按 <kbd>/</kbd> 开始搜索</p>
+          <div class="panel-heading"><div><p class="eyebrow">RELATIONSHIP SURFACE</p><h2 id="map-title">知识地图</h2></div><button id="map-toggle" class="panel-toggle" type="button" aria-expanded="false" aria-controls="graph-content">展开知识地图</button></div>
+          <div id="graph-content" class="graph-content" hidden>
+            <div id="graph-legend" class="graph-legend"></div>
+            <div id="graph-mount" class="graph-mount"><p class="empty-state">加载关系图…</p></div>
+            <p class="graph-hint">点击节点聚焦关系 · 按 <kbd>/</kbd> 开始搜索</p>
+          </div>
         </section>
         <aside id="detail-panel" class="detail-panel" aria-label="概念详情" tabindex="-1"></aside>
       </div>
@@ -95,6 +100,16 @@ function renderGraphLegend() {
   document.querySelector('#graph-legend').innerHTML = types.map((type) => `<span><i class="type-${escapeAttribute(type)}"></i>${escapeAttribute(type)}</span>`).join('')
 }
 
+function renderGraphDisclosure() {
+  const content = document.querySelector('#graph-content')
+  const toggle = document.querySelector('#map-toggle')
+  if (!content || !toggle) return
+  const isOpen = state.mapDisclosure.open
+  content.hidden = !isOpen
+  toggle.setAttribute('aria-expanded', String(isOpen))
+  toggle.textContent = isOpen ? '收起知识地图' : '展开知识地图'
+}
+
 function renderConceptList(concepts) {
   const list = document.querySelector('#concept-list')
   list.innerHTML = concepts.length
@@ -134,6 +149,7 @@ function render() {
   const selected = selectedConcept()
   renderConceptList(concepts)
   renderDetail(selected)
+  renderGraphDisclosure()
   const graph = buildGraphModel(state.index.concepts)
   renderGraph(document.querySelector('#graph-mount'), graph, {
     selectedId: selected?.id,
@@ -164,6 +180,10 @@ async function load() {
     renderTypeSelect()
     renderTypeSummary()
     renderGraphLegend()
+    document.querySelector('#map-toggle').addEventListener('click', () => {
+      state.mapDisclosure = toggleDisclosure(state.mapDisclosure)
+      render()
+    })
     document.querySelector('#search-input').addEventListener('input', (event) => {
       state.query = event.target.value
       render()

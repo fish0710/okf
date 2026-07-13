@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from '../web/src/content.js'
+import { createDisclosureState, toggleDisclosure } from '../web/src/disclosure.js'
 import { renderMarkdown } from '../web/src/markdown.js'
 
 const sampleConcepts = [
@@ -35,6 +36,16 @@ test('filters by type without changing the source concepts', () => {
   assert.ok(filterConcepts(index, 'example').every((item) => item.type === 'example'))
   assert.equal(filterConcepts(index, 'all').length, 2)
   assert.equal(sampleConcepts.length, 2)
+})
+
+test('starts collapsed and toggles without mutating disclosure state', () => {
+  const collapsed = createDisclosureState()
+  assert.deepEqual(collapsed, { open: false })
+
+  const expanded = toggleDisclosure(collapsed)
+  assert.deepEqual(expanded, { open: true })
+  assert.deepEqual(collapsed, { open: false })
+  assert.deepEqual(toggleDisclosure(expanded), { open: false })
 })
 
 test('prefers the most specific nested index path when resolving links', () => {
