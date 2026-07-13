@@ -26,3 +26,15 @@ test('writes a JSON bundle with stable concept fields', async () => {
     'backlinks',
   ])
 })
+
+test('publishes only the industry benchmark article requested for the live bundle', async () => {
+  const { concepts } = await buildContent({
+    contentDir: join(process.cwd(), 'knowledge'),
+    outputFile: null,
+  })
+
+  assert.equal(concepts.length, 1)
+  assert.equal(concepts[0].path, '如何做好研究-中文翻译.md')
+  assert.equal(concepts[0].type, 'industry-benchmark-article')
+  assert.equal(concepts[0].title, '如何做好研究')
+})

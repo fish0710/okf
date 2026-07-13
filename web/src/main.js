@@ -4,7 +4,7 @@ import { buildGraphModel, renderGraph } from './graph.js'
 
 const state = {
   index: null,
-  selectedId: 'index',
+  selectedId: null,
   query: '',
   type: 'all',
 }
@@ -19,7 +19,7 @@ function shellMarkup() {
   return `
     <div class="site-shell">
       <header class="topbar">
-        <a class="brand" href="#concept/index" aria-label="回到 OKF 首页">
+        <a id="brand-link" class="brand" href="#" aria-label="回到知识库首页">
           <span class="brand-mark">OKF</span>
           <span><strong>OPEN KNOWLEDGE FORMAT</strong><small>METHOD / MAP / MEMORY</small></span>
         </a>
@@ -159,7 +159,8 @@ async function load() {
     state.index = createContentIndex(payload.concepts)
     document.querySelector('.hero-stamp span').textContent = state.index.concepts.length
     const hashId = decodeURIComponent(location.hash.match(/^#concept\/(.+)$/)?.[1] ?? '')
-    if (state.index.byId.has(hashId)) state.selectedId = hashId
+    state.selectedId = state.index.byId.has(hashId) ? hashId : state.index.concepts[0]?.id ?? null
+    document.querySelector('#brand-link')?.setAttribute('href', state.selectedId ? `#concept/${encodeURIComponent(state.selectedId)}` : '#')
     renderTypeSelect()
     renderTypeSummary()
     renderGraphLegend()
