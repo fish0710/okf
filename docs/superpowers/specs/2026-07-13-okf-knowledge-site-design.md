@@ -58,7 +58,7 @@ scripts/build-content.mjs
   - 解析 YAML frontmatter
   - 解析 Markdown 标题、链接和正文
   - 校验 required fields 与内部链接
-  - 生成 site/content.json
+  - 生成 web/public/content.json
         │
         ▼
 web/（Vite + 原生前端）
@@ -74,7 +74,7 @@ dist/（纯静态产物）
 GitHub Pages（GitHub Actions）
 ```
 
-构建阶段生成 `content.json`，其中包含概念的标准化 frontmatter、正文 Markdown、内部链接和反向引用。浏览器不需要读取仓库文件系统，也不需要网络 API。
+构建阶段生成 `web/public/content.json`，Vite 将其复制到 `dist/content.json`；文件包含概念的标准化 frontmatter、正文 Markdown、内部链接和反向引用。浏览器不需要读取仓库文件系统，也不需要网络 API。
 
 ## 6. 目录与文件职责
 
