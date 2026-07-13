@@ -11,3 +11,6 @@ timestamp: 2026-07-13T00:00:00Z
 这里记录作者检查清单和维护节奏。
 
 [返回知识库首页](../index.md)
+
+- [OKF 作者检查清单](authoring-checklist.md)
+- [知识库维护流程](maintenance.md)

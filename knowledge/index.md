@@ -13,3 +13,5 @@ timestamp: 2026-07-13T00:00:00Z
 - [基础概念](foundations/index.md)
 - [示例](examples/index.md)
 - [实践](practices/index.md)
+- [术语表](glossary.md)
+- [常见问题](faq.md)
