@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from '../web/src/content.js'
-import { createDisclosureState, toggleDisclosure } from '../web/src/disclosure.js'
+import { createDisclosureState, getDisclosureLayout, toggleDisclosure } from '../web/src/disclosure.js'
 import { renderMarkdown } from '../web/src/markdown.js'
 
 const sampleConcepts = [
@@ -46,6 +46,17 @@ test('starts collapsed and toggles without mutating disclosure state', () => {
   assert.deepEqual(expanded, { open: true })
   assert.deepEqual(collapsed, { open: false })
   assert.deepEqual(toggleDisclosure(expanded), { open: false })
+})
+
+test('maps disclosure state to the compact or expanded grid layout', () => {
+  assert.deepEqual(getDisclosureLayout(createDisclosureState()), {
+    panelClass: 'is-collapsed',
+    workspaceClass: 'map-collapsed',
+  })
+  assert.deepEqual(getDisclosureLayout(createDisclosureState(true)), {
+    panelClass: 'is-expanded',
+    workspaceClass: 'map-expanded',
+  })
 })
 
 test('prefers the most specific nested index path when resolving links', () => {

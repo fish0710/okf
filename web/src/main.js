@@ -1,5 +1,5 @@
 import { createContentIndex, filterConcepts, resolveConceptLink, searchConcepts } from './content.js'
-import { createDisclosureState, toggleDisclosure } from './disclosure.js'
+import { createDisclosureState, getDisclosureLayout, toggleDisclosure } from './disclosure.js'
 import { renderMarkdown } from './markdown.js'
 import { buildGraphModel, renderGraph } from './graph.js'
 
@@ -45,7 +45,7 @@ function shellMarkup() {
           <div id="type-summary" class="type-summary"></div>
           <nav id="concept-list" class="concept-list"></nav>
         </aside>
-        <section class="graph-panel" aria-labelledby="map-title">
+        <section id="graph-panel" class="graph-panel" aria-labelledby="map-title">
           <div class="panel-heading"><div><p class="eyebrow">RELATIONSHIP SURFACE</p><h2 id="map-title">知识地图</h2></div><button id="map-toggle" class="panel-toggle" type="button" aria-expanded="false" aria-controls="graph-content">展开知识地图</button></div>
           <div id="graph-content" class="graph-content" hidden>
             <div id="graph-legend" class="graph-legend"></div>
@@ -103,11 +103,18 @@ function renderGraphLegend() {
 function renderGraphDisclosure() {
   const content = document.querySelector('#graph-content')
   const toggle = document.querySelector('#map-toggle')
+  const panel = document.querySelector('#graph-panel')
+  const workspace = document.querySelector('.workspace-grid')
   if (!content || !toggle) return
   const isOpen = state.mapDisclosure.open
   content.hidden = !isOpen
   toggle.setAttribute('aria-expanded', String(isOpen))
   toggle.textContent = isOpen ? '收起知识地图' : '展开知识地图'
+  const layout = getDisclosureLayout(state.mapDisclosure)
+  panel?.classList.toggle('is-collapsed', layout.panelClass === 'is-collapsed')
+  panel?.classList.toggle('is-expanded', layout.panelClass === 'is-expanded')
+  workspace?.classList.toggle('map-collapsed', layout.workspaceClass === 'map-collapsed')
+  workspace?.classList.toggle('map-expanded', layout.workspaceClass === 'map-expanded')
 }
 
 function renderConceptList(concepts) {

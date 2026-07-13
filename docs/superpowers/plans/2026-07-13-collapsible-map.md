@@ -4,14 +4,14 @@
 
 **Goal:** Make the knowledge map panel collapsed by default while preserving an accessible toggle for showing and hiding the existing relationship graph.
 
-**Architecture:** Add a tiny pure disclosure-state module for testable open/closed transitions. The page shell will keep the map heading and toggle visible, while wrapping the legend, SVG mount, and hint in a `hidden` content region controlled by `aria-expanded`. Existing graph data and rendering remain unchanged.
+**Architecture:** Add a tiny pure disclosure-state module for testable open/closed transitions. The collapsed page uses a narrow map-toggle rail between the directory and article columns; the expanded page restores the original three-column layout and reveals the legend, SVG mount, and hint. Existing graph data and rendering remain unchanged.
 
 **Tech Stack:** Browser-native ES modules, HTML `hidden`, CSS, Node `node:test`.
 
 ## Global Constraints
 
 - Default state must be collapsed.
-- The map heading and toggle must remain visible when collapsed.
+- The collapsed middle column must shrink to a narrow toggle rail so the article column gains the released width.
 - The toggle must expose `aria-expanded` and `aria-controls`.
 - Existing concept search, filtering, selection, and graph rendering must remain unchanged.
 - Do not add runtime dependencies or change the graph data model.
@@ -125,10 +125,13 @@ Bind the button to `state.mapDisclosure = toggleDisclosure(state.mapDisclosure)`
 
 - [ ] **Step 2: Add focused styles**
 
-Add styles that keep the collapsed header visible and hide only the content region:
+Add styles that collapse the middle grid track and leave a narrow vertical toggle rail on desktop:
 
 ```css
 .graph-content[hidden] { display: none; }
+.workspace-grid.map-collapsed { grid-template-columns: 235px 48px minmax(0, 1fr); }
+.graph-panel.is-collapsed .panel-heading > div { display: none; }
+.graph-panel.is-collapsed .panel-toggle { writing-mode: vertical-rl; }
 .panel-toggle { padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted-strong); font: 10px "SFMono-Regular", monospace; letter-spacing: .06em; }
 .panel-toggle:hover { border-color: var(--mint); color: var(--ink); background: var(--surface-soft); }
 .panel-toggle:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
