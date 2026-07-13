@@ -59,9 +59,11 @@ scripts/build-content.mjs
   - 解析 Markdown 标题、链接和正文
   - 校验 required fields 与内部链接
   - 生成 web/public/content.json
+scripts/build-site.mjs
+  - 复制静态前端到 dist/
         │
         ▼
-web/（Vite + 原生前端）
+web/（原生静态前端）
   - 过滤与搜索
   - 关系图谱布局
   - Markdown 渲染
@@ -74,7 +76,7 @@ dist/（纯静态产物）
 GitHub Pages（GitHub Actions）
 ```
 
-构建阶段生成 `web/public/content.json`，Vite 将其复制到 `dist/content.json`；文件包含概念的标准化 frontmatter、正文 Markdown、内部链接和反向引用。浏览器不需要读取仓库文件系统，也不需要网络 API。
+构建阶段生成 `web/public/content.json`，`scripts/build-site.mjs` 将其复制到 `dist/content.json`；文件包含概念的标准化 frontmatter、正文 Markdown、内部链接和反向引用。浏览器不需要读取仓库文件系统，也不需要网络 API。
 
 ## 6. 目录与文件职责
 
@@ -112,14 +114,15 @@ GitHub Pages（GitHub Actions）
 │       └── styles.css
 ├── scripts/
 │   ├── build-content.mjs
-│   └── check-content.mjs
+│   ├── build-site.mjs
+│   ├── check-content.mjs
+│   └── serve.mjs
 ├── tests/
 │   ├── content.test.mjs
 │   └── build.test.mjs
 ├── docs/superpowers/specs/
 ├── .github/workflows/pages.yml
 ├── package.json
-├── package-lock.json
 └── README.md
 ```
 
@@ -130,7 +133,7 @@ GitHub Pages（GitHub Actions）
 - `scripts/check-content.mjs` 负责内容约束检查，在本地和 CI 中运行。
 - `web/src/content.js` 负责加载、索引、搜索和筛选概念。
 - `web/src/graph.js` 负责关系图的节点、边、布局和交互，不负责 Markdown 解析。
-- `web/src/markdown.js` 负责安全地渲染正文并重写内部链接，不负责全局状态。
+- `web/src/markdown.js` 负责转义并渲染正文、重写内部链接，不负责全局状态。
 - `web/src/main.js` 负责页面状态、hash 路由和模块组合。
 - `.github/workflows/pages.yml` 只负责安装、检查、构建和部署，不把发布逻辑塞进前端代码。
 
@@ -222,20 +225,20 @@ timestamp: 2026-07-13T00:00:00Z
 
 `package.json` 提供：
 
-- `npm run dev`：启动 Vite 本地开发服务器。
+- `npm run dev`：生成内容和静态产物，并启动 Node 本地静态服务器。
 - `npm run check`：运行内容校验和单元测试。
-- `npm run build`：先构建 `content.json`，再生成 `dist/`。
-- `npm run preview`：预览生产构建。
+- `npm run build`：先构建 `content.json`，再复制生成 `dist/`。
+- `npm run preview`：生成并预览生产构建。
 
 `.github/workflows/pages.yml`：
 
 1. 在 `main` push 或手动触发时运行。
-2. 使用 Node 22 安装 `package-lock.json` 中的依赖，保证本地和 CI 的运行时一致。
+2. 使用 Node 22；项目不依赖 npm 包，保证本地和 CI 的运行时一致。
 3. 运行 `npm run check` 和 `npm run build`。
 4. 使用 `actions/configure-pages`、`actions/upload-pages-artifact` 和 `actions/deploy-pages` 发布 `dist/`。
 5. 为部署 job 声明 `contents: read`、`pages: write` 和 `id-token: write`，使用 `github-pages` environment。
 
-Vite 的 base path 从 GitHub Actions 的 Pages 元数据或仓库名推导，确保项目站点在 `https://<owner>.github.io/okf/` 下加载 CSS、JavaScript、JSON 和 hash 路由。
+站点使用相对资源路径，确保项目站点在 `https://<owner>.github.io/okf/` 下加载 CSS、JavaScript、JSON 和 hash 路由。
 
 ## 11. 验证策略
 

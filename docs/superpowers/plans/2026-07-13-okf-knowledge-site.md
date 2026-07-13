@@ -4,9 +4,9 @@
 
 **Goal:** Build a Chinese OKF methodology knowledge bundle, an interactive static knowledge map, and a GitHub Pages deployment pipeline in the empty `okf` repository.
 
-**Architecture:** Markdown files under `knowledge/` are the canonical OKF source. A Node content pipeline validates frontmatter and internal links, then writes `web/public/content.json`; a Vite-powered vanilla JavaScript UI consumes that JSON to render search, filters, graph relationships, details, and backlinks. GitHub Actions builds `dist/` and deploys it to GitHub Pages.
+**Architecture:** Markdown files under `knowledge/` are the canonical OKF source. A zero-dependency Node content pipeline validates frontmatter and internal links, then writes `web/public/content.json`; a browser-native JavaScript UI consumes that JSON to render search, filters, graph relationships, details, and backlinks. A Node static-copy step produces `dist/`, which GitHub Actions deploys to GitHub Pages.
 
-**Tech Stack:** Node 22, npm, Vite, Vitest, `gray-matter`, `marked`, `dompurify`, browser-native DOM/SVG APIs, GitHub Actions Pages artifacts.
+**Tech Stack:** Node 22, npm scripts, Node `node:test`, browser-native DOM/SVG APIs, a small custom frontmatter/Markdown implementation, GitHub Actions Pages artifacts.
 
 ## Global Constraints
 
@@ -18,7 +18,7 @@
 - Use Node 22 in local documentation and GitHub Actions.
 - Do not modify or stage the pre-existing untracked file `如何做好研究-中文翻译.md`.
 - Do not add a backend, authentication, database, comments, online editing, or runtime API calls.
-- Keep published assets under `dist/` and source assets under `web/`; never commit generated `dist/`.
+- Keep published assets under `dist/` and source assets under `web/`; never commit generated `dist/` or `web/public/content.json`.
 - Use explicit `git add` paths for every implementation commit because the worktree contains an unrelated untracked file.
 
 ---
@@ -28,7 +28,8 @@
 **Files:**
 - Create: `package.json`
 - Create: `web/index.html`
-- Create: `web/vite.config.js`
+- Create: `scripts/build-site.mjs`
+- Create: `scripts/serve.mjs`
 - Create: `scripts/build-content.mjs`
 - Create: `scripts/check-content.mjs`
 - Create: `tests/content.test.mjs`
@@ -42,7 +43,7 @@
 - `scripts/build-content.mjs` exports `parseMarkdownFile(filePath, contentRoot)`, `resolveInternalLink(sourceId, href, knownIds)`, and `buildContent({ contentDir, outputFile })`.
 - `scripts/check-content.mjs` exports `checkContent({ contentDir })` and exits non-zero when the returned `errors` array is not empty.
 - `buildContent()` returns `{ concepts, errors }`, where each concept contains `id`, `path`, `type`, `title`, `description`, `resource`, `tags`, `timestamp`, `markdown`, `links`, and `backlinks`.
-- `package.json` scripts are `dev`, `test`, `check`, `build`, and `preview`.
+- `package.json` scripts are `dev`, `test`, `check`, `build`, and `preview`; they use only Node built-ins.
 
 - [ ] **Step 1: Write failing content-pipeline tests**
 
@@ -70,14 +71,14 @@ it('builds backlinks from the forward link set', async () => {
 - [ ] **Step 2: Run the focused tests and verify they fail**
 
 ```bash
-npm test -- --run tests/content.test.mjs tests/build.test.mjs
+npm test -- tests/content.test.mjs tests/build.test.mjs
 ```
 
 Expected: FAIL because the package and exported pipeline functions do not exist yet.
 
 - [ ] **Step 3: Add the minimal package and parser implementation**
 
-Use `gray-matter` for YAML frontmatter and Node `fs/promises` for recursive file reads. Normalize links by resolving them relative to the source file, removing an optional `.md` suffix and `index` segment, then checking the resulting ID against the known ID set. Build backlinks in a second pass. Write JSON with two-space indentation to `web/public/content.json`.
+Use Node `fs/promises`, `node:path`, and a small parser for the repository's simple YAML frontmatter profile. Normalize links by resolving them relative to the source file, removing an optional `.md` suffix and `index` segment, then checking the resulting ID against the known ID set. Build backlinks in a second pass. Write JSON with two-space indentation to `web/public/content.json`.
 
 Use this package contract:
 
@@ -85,30 +86,21 @@ Use this package contract:
 {
   "type": "module",
   "scripts": {
-    "dev": "node scripts/build-content.mjs && vite --config web/vite.config.js",
-    "test": "vitest",
-    "check": "npm test -- --run && node scripts/check-content.mjs",
-    "build": "node scripts/build-content.mjs && vite build --config web/vite.config.js",
-    "preview": "vite preview --config web/vite.config.js"
-  },
-  "dependencies": {
-    "dompurify": "^3.2.6",
-    "gray-matter": "^4.0.3",
-    "marked": "^16.0.0"
-  },
-  "devDependencies": {
-    "vite": "^7.0.0",
-    "vitest": "^3.2.4"
+    "dev": "node scripts/build-content.mjs && node scripts/build-site.mjs && node scripts/serve.mjs",
+    "test": "node --test",
+    "check": "npm test && node scripts/check-content.mjs",
+    "build": "node scripts/build-content.mjs && node scripts/build-site.mjs",
+    "preview": "node scripts/build-content.mjs && node scripts/build-site.mjs && node scripts/serve.mjs"
   }
 }
 ```
 
-Configure Vite with `root: 'web'`, `publicDir: 'public'`, `build.outDir: '../dist'`, `build.emptyOutDir: true`, and a `base` value from `VITE_BASE_PATH` with `/` as the local default.
+The static-copy step must copy `web/index.html`, `web/src/`, and `web/public/` to `dist/`, preserving relative paths. The preview server must serve `dist/` through Node's `http` module and reject path traversal.
 
 - [ ] **Step 4: Run the focused tests and content check**
 
 ```bash
-npm test -- --run tests/content.test.mjs tests/build.test.mjs
+npm test -- tests/content.test.mjs tests/build.test.mjs
 node scripts/check-content.mjs
 ```
 
@@ -117,7 +109,7 @@ Expected: all focused tests pass and the four index documents pass required fron
 - [ ] **Step 5: Commit the pipeline scaffold**
 
 ```bash
-git add package.json package-lock.json web/index.html web/vite.config.js scripts/build-content.mjs scripts/check-content.mjs tests/content.test.mjs tests/build.test.mjs knowledge/index.md knowledge/foundations/index.md knowledge/examples/index.md knowledge/practices/index.md
+git add package.json .gitignore web/index.html scripts/build-content.mjs scripts/build-site.mjs scripts/serve.mjs scripts/check-content.mjs tests/content.test.mjs tests/build.test.mjs knowledge/index.md knowledge/foundations/index.md knowledge/examples/index.md knowledge/practices/index.md
 git commit -m "feat: add OKF content validation pipeline"
 ```
 
@@ -210,30 +202,30 @@ it('filters by type without changing the source concepts', () => {
 - [ ] **Step 2: Run the UI-state tests and verify they fail**
 
 ```bash
-npm test -- --run tests/ui-state.test.mjs
+npm test -- tests/ui-state.test.mjs
 ```
 
 Expected: FAIL because the content index module does not exist yet.
 
 - [ ] **Step 3: Implement content indexing, safe Markdown rendering, and the page shell**
 
-Load `/content.json` relative to `import.meta.env.BASE_URL`. Render the header, search input, type chips, concept list, graph mount, and detail panel using semantic elements. Parse Markdown with `marked`, sanitize the result with `DOMPurify`, rewrite internal links to `#concept/<targetId>`, and leave external links with `target="_blank"` and `rel="noreferrer"`.
+Load `content.json` relative to the current document. Render the header, search input, type chips, concept list, graph mount, and detail panel using semantic elements. Escape raw HTML and render the small Markdown subset used by the bundle, rewrite internal links to `#concept/<targetId>`, and leave external links with `target="_blank"` and `rel="noreferrer"`.
 
 Add responsive dark workbench styling: three columns above 1100px, stacked sections below 760px, CSS custom properties for colors, visible focus rings, and a reduced-motion media query.
 
 - [ ] **Step 4: Run tests and build the static shell**
 
 ```bash
-npm test -- --run tests/ui-state.test.mjs
+npm test -- tests/ui-state.test.mjs
 npm run build
 ```
 
-Expected: UI-state tests pass and `dist/index.html` plus `dist/content.json` are generated.
+Expected: UI-state tests pass and `dist/index.html` plus `dist/content.json` are generated without npm dependencies.
 
 - [ ] **Step 5: Commit the site shell**
 
 ```bash
-git add web/index.html web/src/main.js web/src/content.js web/src/markdown.js web/src/styles.css tests/ui-state.test.mjs web/public/content.json
+git add web/index.html web/src/main.js web/src/content.js web/src/markdown.js web/src/styles.css tests/ui-state.test.mjs
 git commit -m "feat: add OKF knowledge site shell"
 ```
 
@@ -268,7 +260,7 @@ it('focuses a selected node and its one-hop neighbors', () => {
 - [ ] **Step 2: Run graph tests and verify they fail**
 
 ```bash
-npm test -- --run tests/graph.test.mjs
+npm test -- tests/graph.test.mjs
 ```
 
 Expected: FAIL because `graph.js` is not implemented.
@@ -304,13 +296,13 @@ git commit -m "feat: add interactive OKF concept graph"
 - Create: `.gitignore`
 - Create: `.github/workflows/pages.yml`
 - Modify: `package.json`
-- Modify: `web/vite.config.js`
+- Modify: `scripts/build-site.mjs`
 - Create: `tests/workflow.test.mjs`
 
 **Interfaces:**
 - `README.md` explains OKF, the source/content split, local commands, the Pages URL pattern, and the public-data warning.
 - `.github/workflows/pages.yml` triggers on `main` pushes and manual dispatch, runs Node 22, checks content, builds `dist/`, uploads the artifact, and deploys with Pages permissions.
-- The workflow passes the Pages base path into `VITE_BASE_PATH` and never commits build output.
+- The workflow runs the zero-dependency Node build and never commits generated output.
 
 - [ ] **Step 1: Write the workflow smoke test**
 
@@ -319,19 +311,18 @@ Read `.github/workflows/pages.yml` and assert it contains `actions/checkout`, `a
 - [ ] **Step 2: Run the workflow test and verify it fails**
 
 ```bash
-npm test -- --run tests/workflow.test.mjs
+npm test -- tests/workflow.test.mjs
 ```
 
 Expected: FAIL because the workflow file is not present.
 
 - [ ] **Step 3: Add the Pages workflow and repository docs**
 
-Use a two-job workflow with `build` and `deploy`. The deploy job must `needs: build`, use `environment.name: github-pages`, and set `contents: read`, `pages: write`, and `id-token: write`. Upload `./dist` with `actions/upload-pages-artifact@v4` and deploy with `actions/deploy-pages@v4`.
+Use a two-job workflow with `build` and `deploy`. The deploy job must `needs: build`, use `environment.name: github-pages`, and set `contents: read`, `pages: write`, and `id-token: write`. The build job uses Node 22 but does not install npm packages; it runs `npm run check` and `npm run build`. Upload `./dist` with `actions/upload-pages-artifact@v4` and deploy with `actions/deploy-pages@v4`.
 
 Document these commands:
 
 ```bash
-npm install
 npm run dev
 npm run check
 npm run build
@@ -343,7 +334,7 @@ Also explain that GitHub Pages is public and that OKF source files remain readab
 - [ ] **Step 4: Run the workflow test and all local checks**
 
 ```bash
-npm test -- --run tests/workflow.test.mjs
+npm test -- tests/workflow.test.mjs
 npm run check
 npm run build
 git diff --check
@@ -354,7 +345,7 @@ Expected: zero test failures, zero content errors, successful build, and no whit
 - [ ] **Step 5: Commit the deployment configuration**
 
 ```bash
-git add README.md .gitignore .github/workflows/pages.yml package.json web/vite.config.js tests/workflow.test.mjs
+git add README.md .github/workflows/pages.yml package.json scripts/build-site.mjs tests/workflow.test.mjs
 git commit -m "ci: publish OKF site to GitHub Pages"
 ```
 
@@ -450,5 +441,5 @@ Open `https://fish0710.github.io/okf/` and verify the same critical behaviors fr
 
 - Spec coverage: Tasks 1–2 cover the OKF file model and initial Chinese methodology content; Tasks 3–4 cover the visual site, search, graph, detail, hash routing, and backlinks; Task 5 covers Actions and README; Task 6 covers local runtime verification; Task 7 covers `gh` creation, push, Pages, and live verification.
 - Placeholder scan: no `TODO`, `TBD`, or unspecified “appropriate handling” steps are required; every external failure path is explicitly reported rather than assumed successful.
-- Interface consistency: `content.json` is written to `web/public/` and copied by Vite to `dist/`; graph IDs use the same path-derived IDs as the content pipeline; the workflow uploads `dist/`.
+- Interface consistency: `content.json` is written to `web/public/` and copied by `scripts/build-site.mjs` to `dist/`; graph IDs use the same path-derived IDs as the content pipeline; the workflow uploads `dist/`.
 - Scope: the plan is one cohesive static knowledge-site subsystem; it does not include an editor, backend, or unrelated repository refactor.

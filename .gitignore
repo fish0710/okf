@@ -1,0 +1,5 @@
+node_modules/
+dist/
+web/public/content.json
+.vite/
+.DS_Store
